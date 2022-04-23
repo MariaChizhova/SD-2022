@@ -57,8 +57,8 @@ if __name__ == '__main__':
         line = line.rstrip('\n')
         if line != '':
             cli.process(line, sys.stdin, sys.stdout)
+            sys.stderr.flush()
         if not cli.is_running:
             print("CLI exit")
             break
-        print('> ', end='')
-        sys.stdout.flush()
+        print('> ', end='', flush=True)

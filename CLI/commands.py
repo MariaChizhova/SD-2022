@@ -1,10 +1,12 @@
 import io
+import re
 from abc import ABC, abstractmethod
 from os import getcwd
 from typing import List
 import sys
 import os
 import subprocess as sb
+from CLI.OwnParse import OwnArgumentParser, ArgumentError
 
 
 class Command(ABC):
@@ -294,4 +296,108 @@ class External(Command):
     def __eq__(self, other):
         if isinstance(other, External):
             return self.args == other.args and self.vars == other.vars and self.command == other.command
+        return False
+
+
+class Grep(Command):
+    """Class which represents grep command"""
+
+    def __init__(self, args: List[str]):
+        """
+        Constructor
+        :param args: list of command arguments
+        :raise AttributeError if the length of the args list is equals zero
+        """
+        if len(args) == 0:
+            raise AttributeError("External: command and vars expected")
+        self.parser = OwnArgumentParser()
+        self.parser.add_argument('needle', type=str)
+        self.parser.add_argument('files', nargs='*', type=str)
+        self.parser.add_argument('-w', dest='word_regexp', action='store_true')
+        self.parser.add_argument('-i', dest='ignore_case', action='store_true')
+        self.parser.add_argument('-A', dest='after_context', default=0)
+        self.args = args
+
+    @staticmethod
+    def join_ranges(ranges: List[List[int]]) -> List[List[int]]:
+        """
+        Merges intervals that intersect
+        :param ranges: Intervals
+        :return: Interval without crossing
+        """
+        ranges.sort()
+        first, count = 0, 0
+        new_ranges = []
+        for element in ranges:
+            count = count + 1 if element[1] == 0 else count - 1
+            if count == 1 and element[1] == 0:
+                first = element[0]
+            if count == 0 and element[1] == 1:
+                new_ranges.append([first, element[0]])
+        return new_ranges
+
+    def calculate_result(self, file_name, count_files, lines) -> List[str]:
+        """
+        Looking for matches in lines
+        :param file_name: File name
+        :param count_files: Number of files
+        :param lines: Lines
+        :return: Lines that match
+        """
+        result = []
+        self.args.needle = self.args.needle.lower() if self.args.ignore_case else self.args.needle
+        self.args.needle = r'(^|\W)' + self.args.needle + r'(\W|$)' if self.args.word_regexp else self.args.needle
+        ranges = []
+        for i, line in enumerate(lines):
+            line = line.lower() if self.args.ignore_case else line
+            if re.search(self.args.needle, line):
+                ranges.append([i, 0])
+                ranges.append([self.args.after_context + i + 1, 1])
+        for i in self.join_ranges(ranges):
+            result += lines[i[0]:i[1]]
+        if count_files > 1:
+            result = [f'{file_name}:{line}' for line in result]
+        return result
+
+    def print_grep(self, in_file, count_files, file):
+        """
+        Processes the data source and print the result
+        :param in_file: Data source
+        :param count_files: Number of files
+        :param file: File name
+        """
+        lines = [line.rstrip('\n') for line in in_file]
+        result = '\n'.join(self.calculate_result(file, count_files, lines))
+        print(result, file=self.stdout, end='')
+
+    def execute(self, stdin, stdout):
+        """
+        Function executes grep command
+        :param stdin: input stream
+        :param stdout: output stream
+        :return: return code
+        """
+        try:
+            self.args = self.parser.parse_args(self.args)
+        except ArgumentError as e:
+            print(*e.args)
+            return False
+        try:
+            self.args.after_context = int(self.args.after_context)
+            if self.args.after_context < 0:
+                raise ValueError
+        except ValueError:
+            print('ValueError: the value following -A is not correct')
+            return False
+        self.stdout = stdout
+        if not self.args.files:
+            self.print_grep(stdin.readlines(), 0, '')
+        else:
+            for file in self.args.files:
+                try:
+                    with open(file, 'r', encoding="utf-8") as in_file:
+                        self.print_grep(in_file.readlines(), len(self.args.files), file)
+                except FileNotFoundError:
+                    print(f"No such file or directory: {file}")
+                    return False
         return False

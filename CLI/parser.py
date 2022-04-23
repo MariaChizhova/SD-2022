@@ -70,7 +70,8 @@ class Parser:
             'echo': commands.Echo,
             'wc': commands.Wc,
             'pwd': commands.Pwd,
-            'exit': commands.Exit
+            'exit': commands.Exit,
+            'grep': commands.Grep
         }
         commands_list = []
         pos = 0

@@ -109,3 +109,161 @@ def test_declaration_twice():
     stdout.seek(0, 0)
     result = stdout.read()
     assert result == "10\n"
+
+
+def test_grep_w_NotEmpty():
+    cli = CLI()
+    stdin = io.StringIO("Hello world\nLondon is the capital of Great Britain")
+    stdout = io.StringIO()
+    line = "grep -w 'Hello world'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "Hello world\n"
+
+
+def test_grep_w_Empty():
+    cli = CLI()
+    stdin = io.StringIO("Hello world\nLondon is the capital of Great Britain")
+    stdout = io.StringIO()
+    line = "grep -w 'Minsk is the capital of Belarus'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == ""
+
+
+def test_grep_i():
+    cli = CLI()
+    stdin = io.StringIO()
+    stdout = io.StringIO()
+    line = "echo Hello | grep -i hElLo"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "Hello\n"
+
+
+def test_grep_A_0():
+    cli = CLI()
+    stdin = io.StringIO("pref needle?\nneedle? suf\nthe needl\npref needle? suf")
+    stdout = io.StringIO()
+    line = "grep -A 0 suf"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "needle? suf\npref needle? suf\n"
+
+
+def test_grep_A_1():
+    cli = CLI()
+    stdin = io.StringIO("pref needle?\nneedle? suf\nthe needl\npref needle? suf")
+    stdout = io.StringIO()
+    line = "grep -A 1 'the'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "the needl\npref needle? suf\n"
+
+
+def test_grep_A_3():
+    cli = CLI()
+    stdin = io.StringIO("pref needle?\nneedle? suf\nthe needl\npref needle? suf")
+    stdout = io.StringIO()
+    line = "grep -A 3 'pref'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "pref needle?\nneedle? suf\nthe needl\npref needle? suf\n"
+
+
+def test_grep_A_with_intersection():
+    cli = CLI()
+    stdin = io.StringIO("Hello world\nthe world hey\nbuy\nokay")
+    stdout = io.StringIO()
+    line = "grep -A 1 'world'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "Hello world\nthe world hey\nbuy\n"
+
+
+def test_grep_file_extension():
+    cli = CLI()
+    stdin = io.StringIO("parser.cpp\ntext.txt\nmain.py")
+    stdout = io.StringIO()
+    line = "grep '.txt'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "text.txt\n"
+
+
+def test_grep_E():
+    cli = CLI()
+    stdin = io.StringIO()
+    stdout = io.StringIO()
+    line = "echo 'ioT\niOT\nIot\nIOT' | grep '[iI][oO]t'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "Iot\n"
+
+
+def test_grep_E_start_with():
+    cli = CLI()
+    stdin = io.StringIO(
+        "Halfway down the stairs\nIs a stair\nWhere I sit.\nThere isn't any\nOther stair\nQuite like\nIt.")
+    stdout = io.StringIO()
+    line = "grep '^Where'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "Where I sit.\n"
+
+
+def test_grep_E_ends_with():
+    cli = CLI()
+    stdin = io.StringIO(
+        "Halfway down the stairs\nIs a stair\nWhere I sit.\nThere isn't any\nOther stair\nQuite like\nIt.")
+    stdout = io.StringIO()
+    line = "grep 'stair$'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "Is a stair\nOther stair\n"
+
+
+def test_grep_E_with_star():
+    cli = CLI()
+    stdin = io.StringIO("yellow\nyeeellow\nyeyelo")
+    stdout = io.StringIO()
+    line = "grep 'y*llow'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "yellow\nyeeellow\n"
+
+
+def test_grep_combine_keys1():
+    cli = CLI()
+    stdin = io.StringIO(
+        "Halfway down the stairs\nIs a stair\nWhere I sit.\nThere isn't any\nOther stair\nQuite like\nIt.")
+    stdout = io.StringIO()
+    line = "grep -A 1 'Where'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "Where I sit.\nThere isn't any\n"
+
+
+def test_grep_combine_keys2():
+    cli = CLI()
+    stdin = io.StringIO(
+        "Halfway down the stairs\nIs a stair\nWhere I sit.\nThere isn't any\nOther stair\nQuite like\nIt.")
+    stdout = io.StringIO()
+    line = "grep -iw 'oTheR'"
+    cli.process(line, stdin, stdout)
+    stdout.seek(0, 0)
+    result = stdout.read()
+    assert result == "Other stair\n"
