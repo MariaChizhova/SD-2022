@@ -2,12 +2,17 @@ import sys
 import io
 from typing import Any
 from CLI.parser import Parser
+from CLI.commands import Exit, Declaration
 
 
 class CLI:
     """
     Class which represents CLI interpreter.
     """
+
+    pipe_ignore = {
+        Exit, Declaration
+    }
 
     def __init__(self):
         """
@@ -28,14 +33,20 @@ class CLI:
         io_in = stdin
         io_out = io.StringIO()
         parser = Parser(line, self.vars)
-        commandsList = parser.parse()
-        for command in commandsList:
+        commands_list = parser.parse()
+        if len(commands_list) == 0:
+            return
+        for command in commands_list:
+            if len(commands_list) > 1 and type(command) in self.pipe_ignore:
+                continue
             self.is_running = not command.execute(io_in, io_out)
             io_in = io_out
             io_in.seek(0, 0)
             io_out = io.StringIO()
-        stdout.write(io_in.read())
-        stdout.write('\n')
+        output = io_in.read()
+        if output:
+            stdout.write(output)
+            stdout.write('\n')
 
 
 if __name__ == '__main__':

@@ -58,41 +58,45 @@ class Parser:
                 return Token(res, key)
         raise AssertionError(f'Token not found, unparsed: "{self.string[self.pos:]}"')
 
-    def parseCommands(self, tokens: List[Token]) -> List[Command]:
+    def parse_commands(self, tokens: List[Token]) -> List[Command]:
         """
         Converts a tokens to a commands
         :param tokens: list of tokens of type CLEAN_STRING
         :return list of Command Instances
         :raise AttributeError: invalid arguments for the command
         """
-        d = {
+        commands_map = {
             'cat': commands.Cat,
             'echo': commands.Echo,
             'wc': commands.Wc,
             'pwd': commands.Pwd,
             'exit': commands.Exit
         }
-        if len(tokens) >= 3 and tokens[1].type == Type.DECLARATION:
-            return [commands.Declaration([self.variables, tokens[0].value, tokens[2].value])]
-        commandsList = []
+        commands_list = []
         pos = 0
         begin = pos
         while pos < len(tokens):
             if tokens[pos].type == Type.PIPE or tokens[pos].type == Type.END:
-                if len(tokens[begin:pos]) > 0:
+                if pos - begin > 0:
                     try:
-                        tokensCommand = tokens[begin:pos]
-                        com_name = tokensCommand[0].value
-                        args = [i.value for i in tokensCommand[1:]]
-                        if com_name not in d:
-                            commandsList.append(commands.External([com_name, self.variables] + args))
+                        tokens_command = tokens[begin:pos]
+                        if len(tokens_command) >= 3 and tokens_command[1].type == Type.DECLARATION:
+                            commands_list.append(commands.Declaration(
+                                [self.variables, tokens_command[0].value, tokens_command[2].value]))
+                            begin = pos + 1
+                            continue
+                        com_name = tokens_command[0].value
+                        args = [i.value for i in tokens_command[1:]]
+                        if com_name not in commands_map:
+                            commands_list.append(commands.External([com_name, self.variables] + args))
                         else:
-                            commandsList.append(d[com_name](args))
-                        begin = pos + 1
+                            commands_list.append(commands_map[com_name](args))
                     except AttributeError as e:
                         print(e)
+                        return []
+                begin = pos + 1
             pos += 1
-        return commandsList
+        return commands_list
 
     def substitution(self, token: Token) -> Token:
         """
@@ -128,6 +132,10 @@ class Parser:
         res = []
         val = None
         while val is None or val.type != Type.END:
-            val = self.next_token()
-            res.append(val)
-        return self.parseCommands([self.substitution(t) for t in res])
+            try:
+                val = self.next_token()
+                res.append(val)
+            except AssertionError as e:
+                print(*e.args)
+                return []
+        return self.parse_commands([self.substitution(t) for t in res])
