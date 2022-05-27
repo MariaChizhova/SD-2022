@@ -1,10 +1,10 @@
 import io
 import re
+import os
 from abc import ABC, abstractmethod
-from os import getcwd
+from os import getcwd, listdir, chdir
 from typing import List
 import sys
-import os
 import subprocess as sb
 from CLI.OwnParse import OwnArgumentParser, ArgumentError
 
@@ -401,3 +401,74 @@ class Grep(Command):
                     print(f"No such file or directory: {file}")
                     return False
         return False
+
+
+class Cd(Command):
+    """Class which represents cd command"""
+
+    def __init__(self, args: List[str]):
+        self.args = args
+
+    def execute(self, stdin, stdout):
+        """
+        Function executes cd command to change current directory to directory self.args[0]
+        If there are no arguments, cd command changes current directory to directory sys.path[0]
+        :param stdin: input stream
+        :param stdout: output stream
+        :return:  0 - command was executed successfully
+        """
+        if len(self.args) > 1:
+            print("Error: Too many arguments", file=stdout)
+            return 0
+
+        dir_name = os.path.expanduser('~') if len(self.args) == 0 else os.path.join(os.path.abspath(getcwd()), self.args[0])
+
+        if os.path.isfile(dir_name):
+            print(f"cd: not a directory: {self.args[0]}", file=stdout)
+            return 0
+
+        if not os.path.exists(dir_name):
+            print(f"No such file or directory: {dir_name}", file=stdout)
+            return 0
+
+        chdir(dir_name)
+        return 0
+
+
+class Ls(Command):
+    """Class which represents ls command to list contents of a directory, for example folder and file names"""
+
+    def __init__(self, args: List[str]):
+        self.args = args
+
+    def execute(self, stdin, stdout):
+        """
+        Function executes ls command
+        :param stdin: input stream
+        :param stdout: output stream
+        :return:  0 - command was executed successfully
+        """
+
+        if len(self.args) == 0:
+            self.args.append("")
+
+        for relative_path in self.args:
+            dir_name = os.path.join(os.path.abspath(getcwd()), relative_path)
+            if not os.path.exists(dir_name):
+                print(f"No such file or directory: {dir_name}", file=stdout)
+                print(file=stdout)
+                continue
+
+            if len(self.args) > 1:
+                print(f"{relative_path}:", file=stdout)
+
+            if os.path.isfile(dir_name):
+                print(relative_path, file=stdout)
+                continue
+
+            for file_name in listdir(dir_name):
+                print(file_name, file=stdout)
+
+            print(file=stdout)
+
+        return 0

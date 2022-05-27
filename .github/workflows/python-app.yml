@@ -3,11 +3,7 @@
 
 name: Python application
 
-on:
-  push:
-    branches: [ hw04 ]
-  pull_request:
-    branches: [ hw04 ]
+on: [push, pull_request]
 
 jobs:
   Ubuntu:

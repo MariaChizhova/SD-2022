@@ -13,7 +13,7 @@ class Parser:
         (Type.PIPE, r'\|'),
         (Type.DECLARATION, r'='),
         (Type.CLEAN_STRING, r'\'[^\']*\''),
-        (Type.STRING, r'(\"[^\"]*\")|([\w\-\.\!\@\?\#\$\%\^\&\/\*\(\)\-\+]+)'),
+        (Type.STRING, r'(\"[^\"]*\")|([\\\w\-\.\!\@\?\#\$\%\^\&\/\*\(\)\-\+:]+)'),
         (Type.END, chr(0))
     ])
 
@@ -71,7 +71,9 @@ class Parser:
             'wc': commands.Wc,
             'pwd': commands.Pwd,
             'exit': commands.Exit,
-            'grep': commands.Grep
+            'grep': commands.Grep,
+            'ls': commands.Ls,
+            'cd': commands.Cd
         }
         commands_list = []
         pos = 0
